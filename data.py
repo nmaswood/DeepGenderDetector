@@ -3,23 +3,51 @@ from enum import Enum
 import os
 from os import listdir
 import os.path
+import pandas as pd
 
 class Person():
 
     """
-    Struct representing name, gender tuple
+    Struct representing name, gender count
     """
-
     str_to_int = {"male": 0, "female": 1, "unknown": 2}
     int_to_str = {v:k for k,v in str_to_int.items()}
 
-    def __init__(self, name, gender):
+    def __init__(self, name):
         self.name = name
-        self.gender = gender
+        self.male = 0
+        self.female = 0
+        self.unk = 0
+        self.nan = 0
 
     def __repr__(self):
 
-        return f'{self.name}:{self.gender}'
+        return f'{self.name}|M:{self.male},F:{self.female}'
+
+    def __hash__(self):
+        return hash(self.name)
+
+    def update(self, gender):
+
+        if gender == "male":
+            self.male += 1
+        elif gender == "female":
+            self.female += 1
+        elif gender == "unknown":
+            self.unk  +=1
+        else:
+            self.nan += 1
+
+    def to_tuple(self):
+
+        return (self.name,self.male, self.female, self.unk, self.nan)
+
+    @staticmethod
+    def select_first_name(full_name):
+        lowered = full_name.lower()
+        splat = lowered.split()
+        return splat[0].strip().strip("'")
+
 
 class People():
 
@@ -29,8 +57,7 @@ class People():
 
     def __init__(self):
 
-        self.people = set()
-        self.names = set()
+        self.people = {}
 
     def __repr__(self):
 
@@ -40,68 +67,37 @@ class People():
 
         """
 
-        Saves a name, gender as a person if it is unique
+        Creates or updates a person struct
 
         """
 
-        if name in self.names:
-            return 0
+        first_name = Person.select_first_name(name)
 
-        self.names.add(name)
+        if first_name not in self.people:
+            person = Person(first_name)
+            self.people[first_name] = person
+        else:
+            person = self.people.get(first_name)
 
-        new_person = Person(name, gender)
-        self.people.add(new_person)
+        person.update(gender)
 
-        return 1
+        return person
 
-    @staticmethod
-    def _collect_data():
-        """
-        Process the intial data files and extracts name and gender
-        """
+    def to_csv(self):
+        if not self.people:
+            print ("Your people dict is empty bro")
+            return
 
-        people = People()
+        as_list = sorted([v.to_tuple() for k, v in self.people.items() ],key = lambda x:x[0])
 
-        def read_csvs():
-
-            dirs = ("imdb/2006/actors", "imdb/2015/actors")
-
-            for _dir in dirs:
-                for filename in listdir(_dir):
-
-                    with open(_dir + "/" + filename, 'r') as infile:
-
-                        csvreader = csv.reader(infile)
-                        next(csvreader)
-
-                        for line in csvreader:
-
-                            name = line[0]
-                            gender = line[1]
-                            people.add(name, gender)
-        read_csvs()
-        people._write()
-
-
-    def _write(self):
-
-        """
-
-        Writes people struct to disk
-
-        """
-
-        with open("people.csv", 'w') as outfile:
-
+        with open("_people.csv", "w") as outfile:
             writer = csv.writer(outfile)
 
-            writer.writerow(["name", "gender"])
+            writer.writerow(['name', 'male', 'female'])
 
-            for person in self.people:
+            for name, male, female, _, _ in as_list:
 
-                name, gender = person.name, person.gender
-
-                writer.writerow([name, gender])
+                writer.writerow([name, male, female])
 
     @staticmethod
     def read():
@@ -112,27 +108,24 @@ class People():
 
         """
 
+        if os.path.isfile("_people.csv"):
+            return pd.read_csv("_people.csv")
+
         if not os.path.isfile("people.csv"):
+            raise Exception("Hmmm looks like you don't have the original data contact Nasr Maswood for the data directly")
 
-            if not os.path.isdir("imdb"):
+        people_data = pd.read_csv('people.csv')
+        names = people_data['name'].tolist()
+        genders = people_data['gender'].tolist()
 
-                raise Exception("Hmmm looks like you don't have the original data contact Nasr Maswood for the data directly")
-            else:
-                People._collect_data()
+        zipped = list(zip(names,genders))
 
-        p = People()
+        people = People()
 
-        with open("people.csv", "r") as infile:
+        for name, gender in zipped:
+            people.add(name, gender)
 
-            reader = csv.reader(infile)
-            next(reader)
-
-            for name, gender in reader:
-
-                p.add(name, gender)
-
-        return p
+        people.to_csv()
 
 if __name__ == "__main__":
     people = People.read()
-    print (people)
