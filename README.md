@@ -1,14 +1,13 @@
 # Gender Detector
 
-I have 30,000 > data points of actors from imdb and their gender. I want to see if I can use this data to build a tool that identify the gender of an arbitary name.
+I scraped the names and genders of 50,000 thousand people from IMDB. Using this Data I want to accurately guess a person's gender given their name.
 
 ##  Access the Data
 
-In order to read the data as a list of tuples<name, gender>
+In order to process/ read the data as a pandas pd
 
 ```python
 from data import People
 
 name_gender_data = People.read()
-
 ```
