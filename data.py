@@ -1,6 +1,7 @@
 import csv
 from enum import Enum
 import os
+import numpy as np
 from os import listdir
 import os.path
 import pandas as pd
@@ -115,6 +116,8 @@ class People():
             raise Exception("Hmmm looks like you don't have the original data contact Nasr Maswood for the data directly")
 
         people_data = pd.read_csv('people.csv')
+        people_data = people_data.dropna(how = 'any')
+
         names = people_data['name'].tolist()
         genders = people_data['gender'].tolist()
 
